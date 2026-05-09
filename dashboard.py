@@ -89,7 +89,7 @@ div[data-testid="metric-container"]:hover {
 # 🚀 HEADER SECTION
 # ==========================================
 st.markdown('<div class="title-glow">QUANTUM SIGNAL INDO</div>', unsafe_allow_html=True)
-st.markdown('<div class="subtitle">AI-Powered Trading Algorithm & Proyeksi Finansial</div>', unsafe_allow_html=True)
+st.markdown('<div class="subtitle">Trading Algorithm & Proyeksi Finansial</div>', unsafe_allow_html=True)
 
 tab1, tab2 = st.tabs(["📊 Radar Saham & Backtest", "💎 Kalkulator Compounding"])
 
