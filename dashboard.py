@@ -2,159 +2,111 @@ import streamlit as st
 import numpy as np
 import re
 import plotly.graph_objects as go
+import plotly.express as px
 from signal_engine import run_all_signals
 
-# Konfigurasi Halaman (Full Screen & Icon)
-st.set_page_config(page_title="Signal Saham Indo", page_icon="🚀", layout="wide", initial_sidebar_state="collapsed")
+# Konfigurasi Halaman
+st.set_page_config(page_title="Quantum Signal Indo", page_icon="🚀", layout="wide")
 
 # ==========================================
-# 🎨 UI/UX SUPER PREMIUM (CSS INJECTIONS)
+# 🎨 UI/UX ADVANCED STYLING
 # ==========================================
 st.markdown("""
 <style>
-/* Import Font Premium (Poppins) */
 @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600;800&display=swap');
+html, body, [class*="css"] { font-family: 'Poppins', sans-serif; }
 
-html, body, [class*="css"] {
-    font-family: 'Poppins', sans-serif;
-}
-
-/* Header Gradient & Glowing */
 .title-glow {
-    font-size: 52px;
-    font-weight: 800;
-    text-align: center;
+    font-size: 48px; font-weight: 800; text-align: center;
     background: -webkit-linear-gradient(45deg, #00C9FF, #92FE9D);
-    -webkit-background-clip: text;
-    -webkit-text-fill-color: transparent;
-    margin-bottom: 5px;
-    margin-top: -30px;
+    -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+    margin-bottom: 0px; margin-top: -40px;
 }
-.subtitle {
-    text-align: center;
-    color: #94a3b8;
-    margin-bottom: 40px;
-    font-size: 18px;
-    font-weight: 300;
-}
+.subtitle { text-align: center; color: #94a3b8; margin-bottom: 30px; font-size: 16px; }
 
-/* Glassmorphism & Neon Effect pada Metric Cards */
+/* Glassmorphism Metric */
 div[data-testid="metric-container"] {
     background: rgba(30, 41, 59, 0.4);
-    backdrop-filter: blur(12px);
-    -webkit-backdrop-filter: blur(12px);
     border: 1px solid rgba(255, 255, 255, 0.05);
-    border-radius: 20px;
-    padding: 25px 20px;
-    box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.3);
-    border-left: 5px solid #00C9FF;
-    transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
-}
-div[data-testid="metric-container"]:hover {
-    transform: translateY(-8px) scale(1.02);
-    box-shadow: 0 15px 40px 0 rgba(0, 201, 255, 0.2);
-    border-left: 5px solid #92FE9D;
-}
-
-/* Styling Tab Premium */
-.stTabs [data-baseweb="tab-list"] {
-    background-color: #0f172a;
-    border-radius: 15px;
-    padding: 5px;
-    box-shadow: inset 0 2px 4px rgba(0,0,0,0.5);
-    gap: 10px;
-}
-.stTabs [data-baseweb="tab"] {
-    border-radius: 10px;
-    color: #cbd5e1;
-    padding: 10px 20px;
-    transition: all 0.3s;
-}
-.stTabs [aria-selected="true"] {
-    background: rgba(255, 255, 255, 0.05);
-    color: #00C9FF !important;
-    border-bottom: 2px solid #00C9FF;
-}
-
-/* Custom Table Background */
-[data-testid="stDataFrame"] {
-    border-radius: 15px;
-    overflow: hidden;
-    box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+    border-radius: 15px; padding: 20px;
+    box-shadow: 0 4px 15px rgba(0,0,0,0.3);
 }
 </style>
 """, unsafe_allow_html=True)
 
-# ==========================================
-# 🚀 HEADER SECTION
-# ==========================================
 st.markdown('<div class="title-glow">QUANTUM SIGNAL INDO</div>', unsafe_allow_html=True)
-st.markdown('<div class="subtitle">Trading Algorithm & Proyeksi Finansial</div>', unsafe_allow_html=True)
+st.markdown('<div class="subtitle">Visualized Algorithmic Trading Dashboard</div>', unsafe_allow_html=True)
 
-tab1, tab2 = st.tabs(["📊 Radar Saham & Backtest", "💎 Kalkulator Compounding"])
+tab1, tab2 = st.tabs(["📊 Radar Sinyal & Performa", "💎 Kalkulator Proyeksi"])
 
 # ================= TAB 1: DASHBOARD SAHAM =================
 with tab1:
     df = run_all_signals()
-
-    # Layout Metric
+    
+    # --- ROW 1: METRICS ---
     buy_count = (df["Signal"] == "BUY").sum()
     sell_count = (df["Signal"] == "SELL").sum()
     hold_count = (df["Signal"] == "HOLD").sum()
 
-    col1, col2, col3 = st.columns(3)
-    col1.metric("🔥 Momentum BUY", buy_count)
-    col2.metric("🛡️ Fase HOLD", hold_count)
-    col3.metric("⚠️ Sinyal SELL", sell_count)
+    m1, m2, m3 = st.columns(3)
+    m1.metric("🟢 TOTAL BUY", buy_count)
+    m2.metric("🟡 TOTAL HOLD", hold_count)
+    m3.metric("🔴 TOTAL SELL", sell_count)
 
-    st.markdown("<br><br>", unsafe_allow_html=True)
+    # --- ROW 2: VISUAL CHART (BAGIAN BARU) ---
+    st.markdown("<br>", unsafe_allow_html=True)
+    col_chart1, col_chart2 = st.columns([1, 1.5])
 
+    with col_chart1:
+        # Donut Chart untuk Distribusi Sinyal
+        fig_pie = px.pie(
+            values=[buy_count, hold_count, sell_count], 
+            names=['BUY', 'HOLD', 'SELL'],
+            hole=0.6,
+            color=['BUY', 'HOLD', 'SELL'],
+            color_discrete_map={'BUY':'#10b981', 'HOLD':'#f59e0b', 'SELL':'#ef4444'},
+            title="Market Sentiment Radar"
+        )
+        fig_pie.update_layout(paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)', 
+                              font=dict(color='white'), showlegend=False, margin=dict(t=40, b=0, l=0, r=0))
+        st.plotly_chart(fig_pie, use_container_width=True)
+
+    with col_chart2:
+        # Bar Chart untuk Performa Return 1 Tahun
+        fig_perf = px.bar(
+            df, x='Saham', y='Return 1Y',
+            color='Return 1Y',
+            color_continuous_scale='Tealgrn',
+            title="Akurasi Algoritma (Return 1 Tahun Terakhir)",
+            text_auto='.2s'
+        )
+        fig_perf.update_layout(paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)',
+                               font=dict(color='white'), margin=dict(t=40, b=0, l=0, r=0))
+        fig_perf.update_coloraxes(showscale=False)
+        st.plotly_chart(fig_perf, use_container_width=True)
+
+    # --- ROW 3: DATA TABLE ---
+    st.subheader("📡 Live Market Scanner")
     def color_signal(val):
-        if val == "BUY":
-            return "background-color: rgba(16, 185, 129, 0.15); color: #34d399; font-weight: 600;"
-        elif val == "SELL":
-            return "background-color: rgba(239, 68, 68, 0.15); color: #f87171; font-weight: 600;"
-        elif val == "HOLD":
-            return "background-color: rgba(245, 158, 11, 0.15); color: #fbbf24; font-weight: 600;"
-        return ""
+        if val == "BUY": return "color: #34d399; font-weight: bold;"
+        elif val == "SELL": return "color: #f87171; font-weight: bold;"
+        return "color: #fbbf24; font-weight: bold;"
 
-    def color_return(val):
-        if val > 0:
-            return "color: #34d399; font-weight: 800;"
-        elif val < 0:
-            return "color: #f87171; font-weight: 800;"
-        return ""
-
-    styled_df = df.style.format({
-        "Close": "Rp {:,.0f}",
-        "Return 1Y": "{:,.2f}%"
-    }).map(color_signal, subset=["Signal"]).map(color_return, subset=["Return 1Y"])
-
-    st.subheader("📡 Real-time Market Scanner")
+    styled_df = df.style.format({"Close": "Rp {:,.0f}", "Return 1Y": "{:,.2f}%"}).map(color_signal, subset=["Signal"])
     st.dataframe(styled_df, use_container_width=True, hide_index=True)
 
-    st.markdown("<hr style='border-color: rgba(255,255,255,0.1);'>", unsafe_allow_html=True)
-
-    col_detail1, col_detail2 = st.columns(2)
-    with col_detail1:
-        st.subheader("👑 Top Pick Algorithm")
+    # --- ROW 4: DETAIL ---
+    st.divider()
+    c1, c2 = st.columns(2)
+    with c1:
+        st.subheader("🏆 Top Recommendation")
         top = df.iloc[0]
-        st.success(f"Sistem merekomendasikan **{top['Saham']}** dengan status **{top['Signal']}** (Confidence: **{top['Confidence']}%**).\n\n🚀 *Simulasi algoritma ini mencetak profit **{top['Return 1Y']}%** dalam 1 tahun terakhir.*", icon="🤖")
-
-    with col_detail2:
-        st.subheader("🧠 Logika Mesin")
-        selected = st.selectbox("Pilih saham untuk dibedah:", df["Saham"].tolist(), label_visibility="collapsed")
-        detail = df[df["Saham"] == selected].iloc[0]
-        
-        reasons_list = detail['Reason'].split(", ")
-        for r in reasons_list:
-            if "Di atas" in r or "Bullish" in r or "Sehat" in r or "Positif" in r or "Spike" in r:
-                st.markdown(f"✅ <span style='color:#34d399'>{r}</span>", unsafe_allow_html=True)
-            elif "Di bawah" in r or "Bearish" in r or "Overbought" in r or "Negatif" in r:
-                st.markdown(f"❌ <span style='color:#f87171'>{r}</span>", unsafe_allow_html=True)
-            else:
-                st.markdown(f"➖ <span style='color:#94a3b8'>{r}</span>", unsafe_allow_html=True)
-
+        st.success(f"Analisa hari ini memprioritaskan **{top['Saham']}** untuk strategi **{top['Signal']}**.")
+    with c2:
+        st.subheader("💡 Logic Breakdown")
+        sel = st.selectbox("Bedah indikator saham:", df["Saham"].tolist())
+        det = df[df["Saham"] == sel].iloc[0]
+        st.info(f"**Alasan:** {det['Reason']}")
 
 # ================= TAB 2: KALKULATOR INVESTASI =================
 with tab2:    
