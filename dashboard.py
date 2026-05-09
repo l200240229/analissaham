@@ -1,151 +1,126 @@
 import streamlit as st
 import numpy as np
 import re
+import yfinance as yf
 import plotly.graph_objects as go
 from signal_engine import run_all_signals
 
-# Konfigurasi Halaman (Full Screen & Icon)
-st.set_page_config(page_title="Signal Saham Indo", page_icon="🚀", layout="wide", initial_sidebar_state="collapsed")
+# Konfigurasi Halaman
+st.set_page_config(page_title="Quantum Signal Indo", page_icon="🚀", layout="wide")
 
 # ==========================================
-# 🎨 UI/UX SUPER PREMIUM (CSS INJECTIONS)
+# 🎨 UI/UX ADVANCED STYLING
 # ==========================================
 st.markdown("""
 <style>
-/* Import Font Premium (Poppins) */
 @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600;800&display=swap');
+html, body, [class*="css"] { font-family: 'Poppins', sans-serif; }
 
-html, body, [class*="css"] {
-    font-family: 'Poppins', sans-serif;
-}
-
-/* Header Gradient & Glowing */
 .title-glow {
-    font-size: 52px;
-    font-weight: 800;
-    text-align: center;
+    font-size: 42px; font-weight: 800; text-align: center;
     background: -webkit-linear-gradient(45deg, #00C9FF, #92FE9D);
-    -webkit-background-clip: text;
-    -webkit-text-fill-color: transparent;
-    margin-bottom: 5px;
-    margin-top: -30px;
+    -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+    margin-bottom: 0px; margin-top: -40px;
 }
-.subtitle {
-    text-align: center;
-    color: #94a3b8;
-    margin-bottom: 40px;
-    font-size: 18px;
-    font-weight: 300;
-}
+.subtitle { text-align: center; color: #94a3b8; margin-bottom: 30px; font-size: 16px; }
 
-/* Glassmorphism & Neon Effect pada Metric Cards */
+/* Glassmorphism Metric */
 div[data-testid="metric-container"] {
     background: rgba(30, 41, 59, 0.4);
-    backdrop-filter: blur(12px);
-    -webkit-backdrop-filter: blur(12px);
     border: 1px solid rgba(255, 255, 255, 0.05);
-    border-radius: 20px;
-    padding: 25px 20px;
-    box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.3);
-    border-left: 5px solid #00C9FF;
-    transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
-}
-div[data-testid="metric-container"]:hover {
-    transform: translateY(-8px) scale(1.02);
-    box-shadow: 0 15px 40px 0 rgba(0, 201, 255, 0.2);
-    border-left: 5px solid #92FE9D;
-}
-
-/* Styling Tab Premium */
-.stTabs [data-baseweb="tab-list"] {
-    background-color: #0f172a;
-    border-radius: 15px;
-    padding: 5px;
-    box-shadow: inset 0 2px 4px rgba(0,0,0,0.5);
-    gap: 10px;
-}
-.stTabs [data-baseweb="tab"] {
-    border-radius: 10px;
-    color: #cbd5e1;
-    padding: 10px 20px;
-    transition: all 0.3s;
-}
-.stTabs [aria-selected="true"] {
-    background: rgba(255, 255, 255, 0.05);
-    color: #00C9FF !important;
-    border-bottom: 2px solid #00C9FF;
-}
-
-/* Custom Table Background */
-[data-testid="stDataFrame"] {
-    border-radius: 15px;
-    overflow: hidden;
-    box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+    border-radius: 15px; padding: 20px;
+    box-shadow: 0 4px 15px rgba(0,0,0,0.3);
 }
 </style>
 """, unsafe_allow_html=True)
 
-# ==========================================
-# 🚀 HEADER SECTION
-# ==========================================
 st.markdown('<div class="title-glow">QUANTUM SIGNAL INDO</div>', unsafe_allow_html=True)
-st.markdown('<div class="subtitle">Trading Algorithm & Proyeksi Finansial</div>', unsafe_allow_html=True)
+st.markdown('<div class="subtitle">Visualized Algorithmic Trading Dashboard</div>', unsafe_allow_html=True)
 
-tab1, tab2 = st.tabs(["📊 Radar Saham & Backtest", "💎 Kalkulator Compounding"])
+# Menarik data sinyal utama
+df = run_all_signals()
 
-# ================= TAB 1: DASHBOARD SAHAM =================
+# Membuat 3 Tab Halaman
+tab1, tab2, tab3 = st.tabs(["📊 Radar Sinyal", "📈 Detail & Chart Saham", "💎 Kalkulator Proyeksi"])
+
+# ================= TAB 1: RADAR SINYAL UTAMA =================
 with tab1:
-    df = run_all_signals()
-
-    # Layout Metric
     buy_count = (df["Signal"] == "BUY").sum()
     sell_count = (df["Signal"] == "SELL").sum()
     hold_count = (df["Signal"] == "HOLD").sum()
 
-    col1, col2, col3 = st.columns(3)
-    col1.metric("🔥 Momentum BUY", buy_count)
-    col2.metric("🛡️ Fase HOLD", hold_count)
-    col3.metric("⚠️ Sinyal SELL", sell_count)
+    m1, m2, m3 = st.columns(3)
+    m1.metric("🟢 TOTAL BUY", buy_count)
+    m2.metric("🟡 TOTAL HOLD", hold_count)
+    m3.metric("🔴 TOTAL SELL", sell_count)
 
-    st.markdown("<br><br>", unsafe_allow_html=True)
-
+    st.markdown("<br>", unsafe_allow_html=True)
+    st.subheader("📡 Live Market Scanner")
+    
     def color_signal(val):
-        if val == "BUY":
-            return "background-color: rgba(16, 185, 129, 0.15); color: #34d399; font-weight: 600;"
-        elif val == "SELL":
-            return "background-color: rgba(239, 68, 68, 0.15); color: #f87171; font-weight: 600;"
-        elif val == "HOLD":
-            return "background-color: rgba(245, 158, 11, 0.15); color: #fbbf24; font-weight: 600;"
-        return ""
+        if val == "BUY": return "color: #34d399; font-weight: bold;"
+        elif val == "SELL": return "color: #f87171; font-weight: bold;"
+        return "color: #fbbf24; font-weight: bold;"
 
-    def color_return(val):
-        if val > 0:
-            return "color: #34d399; font-weight: 800;"
-        elif val < 0:
-            return "color: #f87171; font-weight: 800;"
-        return ""
-
-    styled_df = df.style.format({
-        "Close": "Rp {:,.0f}",
-        "Return 1Y": "{:,.2f}%"
-    }).map(color_signal, subset=["Signal"]).map(color_return, subset=["Return 1Y"])
-
-    st.subheader("📡 Real-time Market Scanner")
+    styled_df = df.style.format({"Close": "Rp {:,.0f}", "Return 1Y": "{:,.2f}%"}).map(color_signal, subset=["Signal"])
     st.dataframe(styled_df, use_container_width=True, hide_index=True)
 
-    st.markdown("<hr style='border-color: rgba(255,255,255,0.1);'>", unsafe_allow_html=True)
 
-    col_detail1, col_detail2 = st.columns(2)
-    with col_detail1:
-        st.subheader("👑 Top Pick Algorithm")
-        top = df.iloc[0]
-        st.success(f"Sistem merekomendasikan **{top['Saham']}** dengan status **{top['Signal']}** (Confidence: **{top['Confidence']}%**).\n\n🚀 *Simulasi algoritma ini mencetak profit **{top['Return 1Y']}%** dalam 1 tahun terakhir.*", icon="🤖")
+# ================= TAB 2: DETAIL & CHART (ALA BIBIT) =================
+with tab2:
+    st.subheader("🔍 Halaman Detail Saham")
+    
+    # Dropdown pilih saham
+    selected_stock = st.selectbox("Pilih Saham untuk melihat pergerakan harga:", df["Saham"].tolist())
+    
+    # Ambil detail sinyal dari dataframe
+    detail = df[df["Saham"] == selected_stock].iloc[0]
+    
+    col_kiri, col_kanan = st.columns([2, 1])
+    
+    with col_kiri:
+        with st.spinner('Memuat grafik harga...'):
+            # Tarik data historis 6 bulan ke belakang khusus untuk saham yang dipilih
+            ticker = f"{selected_stock}.JK"
+            hist = yf.download(ticker, period="6mo", interval="1d", progress=False)
+            
+            if not hist.empty:
+                # Membuat Grafik Area (Bibit Style)
+                fig = go.Figure()
+                fig.add_trace(go.Scatter(
+                    x=hist.index,
+                    y=hist['Close'].squeeze(), # Mengambil nilai harga Close
+                    fill='tozeroy',
+                    mode='lines',
+                    line=dict(color='#00b873', width=2), # Warna Hijau khas Bibit
+                    fillcolor='rgba(0, 184, 115, 0.15)', # Gradasi transparan di bawah garis
+                    hovertemplate='Tanggal: %{x|%d %b %Y}<br>Harga: Rp %{y:,.0f}<extra></extra>'
+                ))
+                
+                # Mematikan grid dan mengunci grafik agar statis (tidak bisa di-zoom/geser)
+                fig.update_layout(
+                    xaxis=dict(showgrid=False, fixedrange=True, visible=False), # Sumbu X disembunyikan agar bersih
+                    yaxis=dict(showgrid=False, fixedrange=True, side='right', tickformat=",.0f"),
+                    margin=dict(l=0, r=0, t=10, b=0),
+                    plot_bgcolor='rgba(0,0,0,0)',
+                    paper_bgcolor='rgba(0,0,0,0)',
+                    height=300,
+                    hovermode="x unified"
+                )
+                
+                # config={'displayModeBar': False} menyembunyikan toolbar plotly di atas grafik
+                st.plotly_chart(fig, use_container_width=True, config={'displayModeBar': False})
+            else:
+                st.error("Gagal memuat data grafik.")
 
-    with col_detail2:
-        st.subheader("🧠 Logika Mesin")
-        selected = st.selectbox("Pilih saham untuk dibedah:", df["Saham"].tolist(), label_visibility="collapsed")
-        detail = df[df["Saham"] == selected].iloc[0]
+    with col_kanan:
+        st.markdown(f"### Status: **{detail['Signal']}**")
+        st.write(f"Harga Terakhir: **Rp {detail['Close']:,.0f}**")
+        st.write(f"Akurasi AI: **{detail['Confidence']}%**")
+        st.write(f"Profit Simulasi 1 Thn: **{detail['Return 1Y']}%**")
         
+        st.markdown("---")
+        st.markdown("**🧠 Alasan Algoritma:**")
         reasons_list = detail['Reason'].split(", ")
         for r in reasons_list:
             if "Di atas" in r or "Bullish" in r or "Sehat" in r or "Positif" in r or "Spike" in r:
@@ -156,8 +131,8 @@ with tab1:
                 st.markdown(f"➖ <span style='color:#94a3b8'>{r}</span>", unsafe_allow_html=True)
 
 
-# ================= TAB 2: KALKULATOR INVESTASI =================
-with tab2:    
+# ================= TAB 3: KALKULATOR =================
+with tab3:    
     col_input, col_grafik = st.columns([1, 2.2], gap="large")
 
     with col_input:
@@ -200,7 +175,6 @@ with tab2:
                 m2.metric("Total Keuntungan (Bunga)", f"Rp {keuntungan:,.0f}")
                 m3.metric("Estimasi Kekayaan", f"Rp {saldo:,.0f}")
 
-                # GRAFIK PLOTLY YANG LEBIH MEWAH
                 tahun_labels = [f"Thn {i}" for i in range(1, t_total + 1)]
                 
                 fig = go.Figure(data=[
@@ -209,7 +183,7 @@ with tab2:
                         y=saldo_per_tahun, 
                         marker=dict(
                             color=saldo_per_tahun,
-                            colorscale='Teal', # Gradasi warna hijau-biru
+                            colorscale='Teal', 
                             showscale=False
                         ),
                         hovertemplate='<b>%{x}</b><br>Kekayaan: Rp %{y:,.0f}<extra></extra>'
