@@ -187,7 +187,7 @@ with tab3:
     col_in, col_res = st.columns([1, 2], gap="large")
     with col_in:
         with st.container(border=True):
-            st.markdown("### ⚙️ Simulasi Investasi")
+            st.markdown("### ⚙️ Kakulator Proyeksi Investasi")
             setoran = st.text_input("Setoran per Bulan (Rp):", value="1.000.000")
             bunga = st.text_input("Estimasi Profit / Tahun (%):", value="15")
             tenor = st.text_input("Durasi (Tahun):", value="5")
