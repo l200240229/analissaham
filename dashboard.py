@@ -3,6 +3,8 @@ import numpy as np
 import re
 import yfinance as yf
 import plotly.graph_objects as go
+import urllib.request
+import xml.etree.ElementTree as ET
 from signal_engine import run_all_signals
 
 # Konfigurasi Halaman (Full Screen & Icon)
@@ -94,6 +96,59 @@ with tab1:
             st.success(f"Berdasarkan analisa teknikal dan sentimen, **{top['Saham']}** adalah pilihan terbaik untuk besok dengan sinyal **{top['Signal']}**.")
             st.markdown(f"**Confidence Level:** {top['Confidence']}% | **Potensi Profit (Backtest 1Thn):** {top['Return 1Y']}%")
             st.caption(f"Alasan: {top['Reason']}")
+    # ==========================================
+    # 📰 BAGIAN BARU: AGGREGATOR BERITA (CNBC & IDX)
+    # ==========================================
+    st.markdown("<br>", unsafe_allow_html=True)
+    st.subheader("📰 Market Update (Real-Time)")
+    
+    # Fungsi pintar untuk mengambil RSS dari banyak sumber
+    def fetch_news(url, limit=3):
+        try:
+            req = urllib.request.Request(url, headers={'User-Agent': 'Mozilla/5.0'})
+            xml_data = urllib.request.urlopen(req, timeout=5).read()
+            root = ET.fromstring(xml_data)
+            return root.findall('./channel/item')[:limit]
+        except Exception:
+            return []
+
+    with st.spinner("Menarik berita pasar terbaru..."):
+        # Menarik data dari 2 sumber sekaligus
+        cnbc_news = fetch_news('https://www.cnbcindonesia.com/market/rss', 3)
+        idx_news = fetch_news('https://www.idxchannel.com/rss', 3)
+        
+        # Membagi layar menjadi 2 kolom utama
+        col_cnbc, col_idx = st.columns(2, gap="large")
+        
+        # Kolom Kiri: CNBC Indonesia
+        with col_cnbc:
+            st.markdown("#### 🔴 CNBC Indonesia")
+            if not cnbc_news:
+                st.caption("Gagal memuat berita CNBC.")
+            for item in cnbc_news:
+                title = item.find('title').text
+                link = item.find('link').text
+                if len(title) > 70: title = title[:70] + "..."
+                
+                with st.container(border=True):
+                    st.markdown(f"**[{title}]({link})**")
+                    st.caption("Sumber: CNBC Market")
+
+        # Kolom Kanan: IDX Channel
+        with col_idx:
+            st.markdown("#### 🔵 IDX Channel")
+            if not idx_news:
+                st.caption("Gagal memuat berita IDX.")
+            for item in idx_news:
+                title = item.find('title').text
+                link = item.find('link').text
+                if len(title) > 70: title = title[:70] + "..."
+                
+                with st.container(border=True):
+                    st.markdown(f"**[{title}]({link})**")
+                    st.caption("Sumber: BEI / IDX Channel")
+            
+    st.markdown("<br>", unsafe_allow_html=True)
 
 
 # ================= TAB 2: DETAIL & CHART (ALA BIBIT) =================
