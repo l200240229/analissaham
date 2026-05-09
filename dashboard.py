@@ -97,12 +97,12 @@ with tab1:
             st.markdown(f"**Confidence Level:** {top['Confidence']}% | **Potensi Profit (Backtest 1Thn):** {top['Return 1Y']}%")
             st.caption(f"Alasan: {top['Reason']}")
     # ==========================================
-    # 📰 BAGIAN BARU: AGGREGATOR BERITA (DENGAN GAMBAR)
+    # 📰 BAGIAN BARU: AGGREGATOR BERITA (GAMBAR & TANGGAL)
     # ==========================================
     st.markdown("<br>", unsafe_allow_html=True)
     st.subheader("📰 Market Update (Real-Time)")
     
-    # Fungsi pintar untuk mengambil RSS beserta Gambar Thumbnail
+    # Fungsi pintar untuk mengambil RSS beserta Gambar dan Tanggal
     def fetch_news(url, limit=3):
         try:
             req = urllib.request.Request(url, headers={'User-Agent': 'Mozilla/5.0'})
@@ -114,13 +114,20 @@ with tab1:
                 title = item.find('title').text
                 link = item.find('link').text
                 
-                # Mencari link gambar di dalam tag <enclosure>
-                image_url = "https://via.placeholder.com/150x100?text=No+Image" # Gambar default jika tidak ada
+                # Mengambil tanggal rilis (pubDate)
+                pub_date_node = item.find('pubDate')
+                pub_date = pub_date_node.text if pub_date_node is not None else "Waktu tidak diketahui"
+                
+                # Membersihkan format tanggal agar lebih rapi (menghapus zona waktu di belakangnya)
+                if len(pub_date) > 20:
+                    pub_date = pub_date[:22] # Memotong teks timezone seperti '+0700'
+                
+                # Mencari link gambar
+                image_url = "https://via.placeholder.com/150x100?text=No+Image"
                 enclosure = item.find('enclosure')
                 if enclosure is not None and 'url' in enclosure.attrib:
                     image_url = enclosure.attrib['url']
                 else:
-                    # Alternatif: Mencari gambar di dalam <description> menggunakan Regex
                     desc = item.find('description')
                     if desc is not None and desc.text:
                         match = re.search(r'src="([^"]+)"', desc.text)
@@ -130,14 +137,14 @@ with tab1:
                 news_list.append({
                     'title': title,
                     'link': link,
-                    'image': image_url
+                    'image': image_url,
+                    'date': pub_date # Menyimpan data tanggal
                 })
             return news_list
         except Exception:
             return []
 
     with st.spinner("Menarik berita pasar terbaru..."):
-        # Menarik data dari 2 sumber sekaligus
         cnbc_news = fetch_news('https://www.cnbcindonesia.com/market/rss', 3)
         idx_news = fetch_news('https://www.idxchannel.com/rss', 3)
         
@@ -153,13 +160,13 @@ with tab1:
                 if len(title) > 65: title = title[:65] + "..."
                 
                 with st.container(border=True):
-                    # Membagi kotak berita menjadi 2 (Kiri Gambar, Kanan Teks)
                     c_img, c_txt = st.columns([1, 2.5])
                     with c_img:
                         st.image(news['image'], use_container_width=True)
                     with c_txt:
                         st.markdown(f"**[{title}]({news['link']})**")
-                        st.caption("Sumber: CNBC Market")
+                        # Menampilkan jam/tanggal rilis berita
+                        st.caption(f"⏱️ {news['date']} | CNBC Market")
 
         # Kolom Kanan: IDX Channel
         with col_idx:
@@ -171,13 +178,13 @@ with tab1:
                 if len(title) > 65: title = title[:65] + "..."
                 
                 with st.container(border=True):
-                    # Membagi kotak berita menjadi 2 (Kiri Gambar, Kanan Teks)
                     c_img, c_txt = st.columns([1, 2.5])
                     with c_img:
                         st.image(news['image'], use_container_width=True)
                     with c_txt:
                         st.markdown(f"**[{title}]({news['link']})**")
-                        st.caption("Sumber: BEI / IDX Channel")
+                        # Menampilkan jam/tanggal rilis berita
+                        st.caption(f"⏱️ {news['date']} | BEI / IDX Channel")
             
     st.markdown("<br>", unsafe_allow_html=True)
 
