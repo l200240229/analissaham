@@ -1,87 +1,121 @@
 import streamlit as st
-import matplotlib.pyplot as plt
 import numpy as np
 import re
+import plotly.graph_objects as go
 from signal_engine import run_all_signals
 
-st.set_page_config(page_title="Signal Saham Indo", layout="wide")
+# Konfigurasi Halaman (Tambahkan Icon)
+st.set_page_config(page_title="Signal Saham Indo", page_icon="📈", layout="wide")
 
-# Membuat sistem Tab untuk memisahkan fitur
+# --- CUSTOM CSS UNTUK UI MODERN ---
+st.markdown("""
+<style>
+/* Styling untuk Metric Card agar terlihat menonjol dan modern */
+div[data-testid="metric-container"] {
+    background-color: #1a1c23;
+    border: 1px solid #2e323a;
+    padding: 15px 20px;
+    border-radius: 12px;
+    box-shadow: 0 4px 10px rgba(0,0,0,0.15);
+    transition: transform 0.2s ease-in-out;
+}
+div[data-testid="metric-container"]:hover {
+    transform: translateY(-3px);
+    border-color: #3b82f6;
+}
+/* Menghilangkan background bawaan tab agar lebih clean */
+.stTabs [data-baseweb="tab-list"] {
+    gap: 20px;
+}
+.stTabs [data-baseweb="tab"] {
+    padding-top: 10px;
+    padding-bottom: 10px;
+}
+</style>
+""", unsafe_allow_html=True)
+
+# Membuat sistem Tab
 tab1, tab2 = st.tabs(["📈 Dashboard Signal & Backtest", "💼 Kalkulator Investasi Pro"])
 
 # ================= TAB 1: DASHBOARD SAHAM =================
 with tab1:
-    st.title("📈 Dashboard Signal Saham Indonesia")
-    st.caption("Signal harian untuk eksekusi besok beserta rekaman akurasi bot selama 1 tahun terakhir.")
+    st.title("Dashboard Signal Saham")
+    st.caption("Rekomendasi algoritma harian & simulasi akurasi 1 tahun terakhir (BBCA, BMRI, BBNI, BBRI, ADRO, ANTM, PGAS)")
 
     df = run_all_signals()
 
+    # Layout Metric 3 Kolom
     buy_count = (df["Signal"] == "BUY").sum()
     sell_count = (df["Signal"] == "SELL").sum()
     hold_count = (df["Signal"] == "HOLD").sum()
 
     col1, col2, col3 = st.columns(3)
-    col1.metric("Sinyal BUY", buy_count)
-    col2.metric("Sinyal HOLD", hold_count)
-    col3.metric("Sinyal SELL", sell_count)
+    col1.metric("🟢 Sinyal BUY", buy_count)
+    col2.metric("🟡 Sinyal HOLD", hold_count)
+    col3.metric("🔴 Sinyal SELL", sell_count)
 
-    st.divider()
+    st.markdown("<br>", unsafe_allow_html=True)
 
     def color_signal(val):
         if val == "BUY":
-            return "background-color: #16a34a; color: white;"
+            return "background-color: rgba(22, 163, 74, 0.2); color: #4ade80; font-weight: bold;"
         elif val == "SELL":
-            return "background-color: #dc2626; color: white;"
+            return "background-color: rgba(220, 38, 38, 0.2); color: #f87171; font-weight: bold;"
         elif val == "HOLD":
-            return "background-color: #ca8a04; color: white;"
+            return "background-color: rgba(202, 138, 4, 0.2); color: #facc15; font-weight: bold;"
         return ""
 
     def color_return(val):
         if val > 0:
-            return "color: #16a34a; font-weight: bold;"
+            return "color: #4ade80; font-weight: bold;"
         elif val < 0:
-            return "color: #dc2626; font-weight: bold;"
+            return "color: #f87171; font-weight: bold;"
         return ""
 
-    # Memasukkan format kolom baru "Return 1Y"
     styled_df = df.style.format({
         "Close": "Rp {:,.0f}",
         "Return 1Y": "{:,.2f}%"
     }).map(color_signal, subset=["Signal"]).map(color_return, subset=["Return 1Y"])
 
-    st.subheader("Signal Hari Ini & Hasil Backtest 1 Tahun")
+    st.subheader("📊 Tabel Analisa Real-time")
     st.dataframe(styled_df, use_container_width=True, hide_index=True)
 
-    st.subheader("Top Signal")
-    top = df.iloc[0]
-    st.success(f"Top pick besok: **{top['Saham']}** → **{top['Signal']}** (Confidence {top['Confidence']}%) | Profit 1 Thn: **{top['Return 1Y']}%**")
+    # Layout 2 Kolom untuk Detail di bawahnya
+    col_detail1, col_detail2 = st.columns(2)
+    
+    with col_detail1:
+        st.subheader("🏆 Top Pick Besok")
+        top = df.iloc[0]
+        st.info(f"**{top['Saham']}** direkomendasikan **{top['Signal']}** dengan akurasi model **{top['Confidence']}%**.\n\nJika kamu mengikuti sinyal saham ini selama 1 tahun terakhir, profit tercatat sebesar **{top['Return 1Y']}%**.")
 
-    st.subheader("Detail Analisa")
-    selected = st.selectbox("Pilih saham", df["Saham"].tolist())
-
-    detail = df[df["Saham"] == selected].iloc[0]
-    st.write(f"### {detail['Saham']}")
-    st.write(f"**Signal:** {detail['Signal']}")
-    st.write(f"**Profit Simulasi 1 Tahun:** {detail['Return 1Y']}%")
-    st.write(f"**Confidence:** {detail['Confidence']}%")
-    st.write(f"**Score:** {detail['Score']}")
-    st.write(f"**Reason:** {detail['Reason']}")
+    with col_detail2:
+        st.subheader("🔍 Detail Alasan")
+        selected = st.selectbox("Cek alasan algoritma pada saham tertentu:", df["Saham"].tolist())
+        detail = df[df["Saham"] == selected].iloc[0]
+        st.write(f"**Indikator yang memicu sinyal {detail['Signal']}:**")
+        
+        # Format list alasan menjadi bullet points
+        reasons_list = detail['Reason'].split(", ")
+        for r in reasons_list:
+            st.markdown(f"- {r}")
 
 
 # ================= TAB 2: KALKULATOR INVESTASI =================
 with tab2:
-    st.title("💼 Kalkulator Investasi Pro v2.1")
-    st.caption("Hitung proyeksi compounding interest/bunga berbunga dari modal investasimu.")
+    st.title("Kalkulator Investasi Pro")
+    st.caption("Hitung proyeksi compounding interest/bunga berbunga dari setoran rutinmu.")
     
-    col_input, col_grafik = st.columns([1, 2])
+    col_input, col_grafik = st.columns([1, 2.5], gap="large")
 
     with col_input:
-        st.markdown("**INPUT DATA**")
-        input_setoran = st.text_input("Setoran Bulanan:", placeholder="Contoh: 1.000.000", value="1000000")
-        input_return = st.text_input("Return Per Tahun (%):", placeholder="Contoh: 20", value="10")
-        input_tahun = st.text_input("Lama Investasi:", placeholder="Contoh: 20 tahun", value="10")
-        
-        btn_hitung = st.button("HITUNG SEKARANG", use_container_width=True, type="primary")
+        with st.container(border=True): # Menggunakan container bergaris bawaan Streamlit
+            st.markdown("**📝 INPUT DATA**")
+            input_setoran = st.text_input("Setoran Bulanan:", placeholder="Contoh: 1.000.000", value="1000000")
+            input_return = st.text_input("Return Per Tahun (%):", placeholder="Contoh: 15", value="15")
+            input_tahun = st.text_input("Lama Investasi (Tahun):", placeholder="Contoh: 10", value="10")
+            
+            st.markdown("<br>", unsafe_allow_html=True)
+            btn_hitung = st.button("Hitung Proyeksi", use_container_width=True, type="primary")
 
     with col_grafik:
         if btn_hitung:
@@ -100,7 +134,6 @@ with tab2:
                 saldo = 0
                 saldo_per_tahun = []
                 
-                # Looping perhitungan dari kode asli Elang
                 for thn in range(1, t_total + 1):
                     for bln in range(1, 13):
                         saldo = (saldo + pmt) * (1 + r_bulanan)
@@ -109,26 +142,35 @@ with tab2:
                 total_modal = pmt * t_total * 12
                 keuntungan = saldo - total_modal
 
+                # Metric untuk Kalkulator
                 m1, m2, m3 = st.columns(3)
-                m1.metric("Total Modal", f"Rp {total_modal:,.0f}")
+                m1.metric("Modal Disetor", f"Rp {total_modal:,.0f}")
                 m2.metric("Total Profit", f"Rp {keuntungan:,.0f}")
-                m3.metric("Saldo Akhir", f"Rp {saldo:,.0f}")
+                m3.metric("Estimasi Saldo Akhir", f"Rp {saldo:,.0f}")
 
-                fig, ax = plt.subplots(figsize=(6, 4))
-                tahun_labels = np.arange(1, t_total + 1)
-                ax.bar(tahun_labels, saldo_per_tahun, color='#1f538d')
-                ax.set_title("Proyeksi Pertumbuhan Dana")
-                ax.yaxis.set_major_formatter(plt.FormatStrFormatter('%d'))
+                # GRAFIK INTERAKTIF MENGGUNAKAN PLOTLY
+                tahun_labels = [f"Thn {i}" for i in range(1, t_total + 1)]
                 
-                # Membuat background grafik transparan menyatu dengan web
-                fig.patch.set_alpha(0.0)
-                ax.patch.set_alpha(0.0)
-                ax.tick_params(colors='gray')
-                ax.xaxis.label.set_color('gray')
-                ax.yaxis.label.set_color('gray')
-                ax.title.set_color('gray')
+                fig = go.Figure(data=[
+                    go.Bar(
+                        x=tahun_labels, 
+                        y=saldo_per_tahun, 
+                        marker_color='#3b82f6',
+                        hovertemplate='<b>%{x}</b><br>Saldo: Rp %{y:,.0f}<extra></extra>' # Tooltip saat di-hover
+                    )
+                ])
+                
+                fig.update_layout(
+                    title="📈 Grafik Pertumbuhan Dana (Compounding)",
+                    paper_bgcolor='rgba(0,0,0,0)',
+                    plot_bgcolor='rgba(0,0,0,0)',
+                    font=dict(color='#e2e8f0'),
+                    xaxis=dict(showgrid=False),
+                    yaxis=dict(showgrid=True, gridcolor='#334155'),
+                    margin=dict(l=0, r=0, t=40, b=0)
+                )
 
-                st.pyplot(fig)
+                st.plotly_chart(fig, use_container_width=True)
 
             except Exception:
                 st.error("Error: Input harus angka! Jangan kosongkan kolom atau isi dengan format yang salah.")
