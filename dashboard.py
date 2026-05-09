@@ -97,18 +97,42 @@ with tab1:
             st.markdown(f"**Confidence Level:** {top['Confidence']}% | **Potensi Profit (Backtest 1Thn):** {top['Return 1Y']}%")
             st.caption(f"Alasan: {top['Reason']}")
     # ==========================================
-    # 📰 BAGIAN BARU: AGGREGATOR BERITA (CNBC & IDX)
+    # 📰 BAGIAN BARU: AGGREGATOR BERITA (DENGAN GAMBAR)
     # ==========================================
     st.markdown("<br>", unsafe_allow_html=True)
     st.subheader("📰 Market Update (Real-Time)")
     
-    # Fungsi pintar untuk mengambil RSS dari banyak sumber
+    # Fungsi pintar untuk mengambil RSS beserta Gambar Thumbnail
     def fetch_news(url, limit=3):
         try:
             req = urllib.request.Request(url, headers={'User-Agent': 'Mozilla/5.0'})
             xml_data = urllib.request.urlopen(req, timeout=5).read()
             root = ET.fromstring(xml_data)
-            return root.findall('./channel/item')[:limit]
+            
+            news_list = []
+            for item in root.findall('./channel/item')[:limit]:
+                title = item.find('title').text
+                link = item.find('link').text
+                
+                # Mencari link gambar di dalam tag <enclosure>
+                image_url = "https://via.placeholder.com/150x100?text=No+Image" # Gambar default jika tidak ada
+                enclosure = item.find('enclosure')
+                if enclosure is not None and 'url' in enclosure.attrib:
+                    image_url = enclosure.attrib['url']
+                else:
+                    # Alternatif: Mencari gambar di dalam <description> menggunakan Regex
+                    desc = item.find('description')
+                    if desc is not None and desc.text:
+                        match = re.search(r'src="([^"]+)"', desc.text)
+                        if match:
+                            image_url = match.group(1)
+                            
+                news_list.append({
+                    'title': title,
+                    'link': link,
+                    'image': image_url
+                })
+            return news_list
         except Exception:
             return []
 
@@ -117,7 +141,6 @@ with tab1:
         cnbc_news = fetch_news('https://www.cnbcindonesia.com/market/rss', 3)
         idx_news = fetch_news('https://www.idxchannel.com/rss', 3)
         
-        # Membagi layar menjadi 2 kolom utama
         col_cnbc, col_idx = st.columns(2, gap="large")
         
         # Kolom Kiri: CNBC Indonesia
@@ -125,85 +148,38 @@ with tab1:
             st.markdown("#### 🔴 CNBC Indonesia")
             if not cnbc_news:
                 st.caption("Gagal memuat berita CNBC.")
-            for item in cnbc_news:
-                title = item.find('title').text
-                link = item.find('link').text
-                if len(title) > 70: title = title[:70] + "..."
+            for news in cnbc_news:
+                title = news['title']
+                if len(title) > 65: title = title[:65] + "..."
                 
                 with st.container(border=True):
-                    st.markdown(f"**[{title}]({link})**")
-                    st.caption("Sumber: CNBC Market")
+                    # Membagi kotak berita menjadi 2 (Kiri Gambar, Kanan Teks)
+                    c_img, c_txt = st.columns([1, 2.5])
+                    with c_img:
+                        st.image(news['image'], use_container_width=True)
+                    with c_txt:
+                        st.markdown(f"**[{title}]({news['link']})**")
+                        st.caption("Sumber: CNBC Market")
 
         # Kolom Kanan: IDX Channel
         with col_idx:
             st.markdown("#### 🔵 IDX Channel")
             if not idx_news:
                 st.caption("Gagal memuat berita IDX.")
-            for item in idx_news:
-                title = item.find('title').text
-                link = item.find('link').text
-                if len(title) > 70: title = title[:70] + "..."
+            for news in idx_news:
+                title = news['title']
+                if len(title) > 65: title = title[:65] + "..."
                 
                 with st.container(border=True):
-                    st.markdown(f"**[{title}]({link})**")
-                    st.caption("Sumber: BEI / IDX Channel")
+                    # Membagi kotak berita menjadi 2 (Kiri Gambar, Kanan Teks)
+                    c_img, c_txt = st.columns([1, 2.5])
+                    with c_img:
+                        st.image(news['image'], use_container_width=True)
+                    with c_txt:
+                        st.markdown(f"**[{title}]({news['link']})**")
+                        st.caption("Sumber: BEI / IDX Channel")
             
     st.markdown("<br>", unsafe_allow_html=True)
-
-
-# ================= TAB 2: DETAIL & CHART (ALA BIBIT) =================
-with tab2:
-    st.subheader("🔍 Visualisasi Pergerakan Harga")
-    
-    # Dropdown pilih saham
-    selected_stock = st.selectbox("Pilih Saham untuk bedah grafik:", df["Saham"].tolist())
-    detail = df[df["Saham"] == selected_stock].iloc[0]
-    
-    col_chart, col_info = st.columns([2, 1], gap="large")
-    
-    with col_chart:
-        with st.spinner('Menarik data pasar...'):
-            ticker = f"{selected_stock}.JK"
-            hist = yf.download(ticker, period="6mo", interval="1d", progress=False)
-            
-            if not hist.empty:
-                # Grafik Area Statis (Gaya Bibit)
-                fig = go.Figure()
-                fig.add_trace(go.Scatter(
-                    x=hist.index,
-                    y=hist['Close'].squeeze(),
-                    fill='tozeroy',
-                    mode='lines',
-                    line=dict(color='#00b873', width=3),
-                    fillcolor='rgba(0, 184, 115, 0.1)',
-                    hovertemplate='Rp %{y:,.0f}<extra></extra>'
-                ))
-                
-                fig.update_layout(
-                    xaxis=dict(showgrid=False, fixedrange=True, visible=False),
-                    yaxis=dict(showgrid=False, fixedrange=True, side='right', tickformat=",.0f"),
-                    margin=dict(l=0, r=0, t=10, b=0),
-                    plot_bgcolor='rgba(0,0,0,0)',
-                    paper_bgcolor='rgba(0,0,0,0)',
-                    height=350,
-                    hovermode="x unified"
-                )
-                st.plotly_chart(fig, use_container_width=True, config={'displayModeBar': False})
-            else:
-                st.warning("Data historis tidak tersedia.")
-
-    with col_info:
-        st.markdown(f"### {selected_stock}")
-        st.markdown(f"## **{detail['Signal']}**")
-        st.write(f"Harga: **Rp {detail['Close']:,.0f}**")
-        st.progress(detail['Confidence'] / 100, text=f"Confidence: {detail['Confidence']}%")
-        
-        st.markdown("---")
-        st.markdown("**💡 Key Indicators:**")
-        reasons = detail['Reason'].split(", ")
-        for r in reasons:
-            icon = "✅" if any(x in r for x in ["Atas", "Bullish", "Sehat", "Positif", "Spike"]) else "❌"
-            st.write(f"{icon} {r}")
 
 
 # ================= TAB 3: KALKULATOR =================
