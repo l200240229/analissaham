@@ -43,7 +43,7 @@ div[data-testid="metric-container"]:hover {
 """, unsafe_allow_html=True)
 
 st.markdown('<div class="title-glow">QUANTUM SIGNAL INDO</div>', unsafe_allow_html=True)
-st.markdown('<div class="subtitle">AI-Powered Trading Algorithm & Visualized Insights</div>', unsafe_allow_html=True)
+st.markdown('<div class="subtitle">Trading Algorithm & Visualized Insights</div>', unsafe_allow_html=True)
 
 # Menarik data sinyal utama dari engine
 df = run_all_signals()
