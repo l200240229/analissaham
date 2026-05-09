@@ -118,10 +118,10 @@ def generate_signal(stock):
         df = df[["Open", "High", "Low", "Close", "Volume"]].dropna()
         df = add_indicators(df)
 
-        # Variabel untuk simulasi Backtest
+        # --- LOGIKA BACKTESTING COMPOUNDING (UPDATE ELANG) ---
         status = "OUT"
         buy_price = 0
-        realized_profit_pct = 0.0
+        capital = 1.0  # Ibarat modal awal 100%
 
         latest_signal = "HOLD"
         latest_score = 0
@@ -142,14 +142,17 @@ def generate_signal(stock):
             else:
                 sig = "HOLD"
 
-            # Logika Simulasi Beli dan Jual
+            # Logika Simulasi Beli dan Jual (Bisa berkali-kali dalam 1 tahun)
             if status == "OUT" and sig == "BUY":
                 buy_price = row["Close"]
                 status = "IN"
             elif status == "IN" and sig == "SELL":
                 sell_price = row["Close"]
-                profit = ((sell_price - buy_price) / buy_price) * 100
-                realized_profit_pct += profit
+                # Profit transaksi dikalikan ke modal (Compounding/Digulung)
+                trade_multiplier = sell_price / buy_price
+                capital = capital * trade_multiplier
+                
+                # Persentase di-lock, nunggu sinyal BUY selanjute
                 status = "OUT"
                 buy_price = 0
 
@@ -159,21 +162,28 @@ def generate_signal(stock):
                 latest_score = daily_score
                 latest_reasons = reasons
 
-        # Hitung floating profit jika posisi hari ini masih HOLD/IN
-        floating_profit_pct = 0.0
+        # Hitung floating profit jika di hari terakhir posisi masih IN/HOLD
         if status == "IN" and buy_price > 0:
             last_close = df.iloc[-1]["Close"]
-            floating_profit_pct = ((last_close - buy_price) / buy_price) * 100
+            trade_multiplier = last_close / buy_price
+            capital = capital * trade_multiplier
 
-        total_profit_1y = realized_profit_pct + floating_profit_pct
+        # Hitung total persentase akhir dari modal yang sudah digulung
+        total_profit_1y = (capital - 1.0) * 100
+        # -------------------------------------------------------------
+        
         close_price = round(float(df["Close"].iloc[-1]), 2)
         confidence = min(95, max(55, 65 + latest_score * 7))
+
+        # --- FORMAT STRING PERSENTASE ---
+        persen_float = round(total_profit_1y, 2)
+        persen_str = f"+{persen_float:.2f}%" if persen_float > 0 else f"{persen_float:.2f}%"
 
         return {
             "Saham": stock.replace(".JK", ""),
             "Close": close_price,
             "Signal": latest_signal,
-            "Return 1Y": round(total_profit_1y, 2), # Fitur baru dari Elang
+            "Return 1Y": persen_str, 
             "Confidence": confidence,
             "Score": latest_score,
             "Reason": ", ".join(latest_reasons),
@@ -184,7 +194,7 @@ def generate_signal(stock):
             "Saham": stock.replace(".JK", ""),
             "Close": 0,
             "Signal": "ERROR",
-            "Return 1Y": 0.0,
+            "Return 1Y": "0.00%",
             "Confidence": 0,
             "Score": 0,
             "Reason": str(e),
