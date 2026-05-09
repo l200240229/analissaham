@@ -181,6 +181,60 @@ with tab1:
             
     st.markdown("<br>", unsafe_allow_html=True)
 
+    # ================= TAB 2: DETAIL & CHART (ALA BIBIT) =================
+with tab2:
+    st.subheader("🔍 Visualisasi Pergerakan Harga")
+    
+    # Dropdown pilih saham
+    selected_stock = st.selectbox("Pilih Saham untuk bedah grafik:", df["Saham"].tolist())
+    detail = df[df["Saham"] == selected_stock].iloc[0]
+    
+    col_chart, col_info = st.columns([2, 1], gap="large")
+    
+    with col_chart:
+        with st.spinner('Menarik data pasar...'):
+            ticker = f"{selected_stock}.JK"
+            hist = yf.download(ticker, period="6mo", interval="1d", progress=False)
+            
+            if not hist.empty:
+                # Grafik Area Statis (Gaya Bibit)
+                fig = go.Figure()
+                fig.add_trace(go.Scatter(
+                    x=hist.index,
+                    y=hist['Close'].squeeze(),
+                    fill='tozeroy',
+                    mode='lines',
+                    line=dict(color='#00b873', width=3),
+                    fillcolor='rgba(0, 184, 115, 0.1)',
+                    hovertemplate='Rp %{y:,.0f}<extra></extra>'
+                ))
+                
+                fig.update_layout(
+                    xaxis=dict(showgrid=False, fixedrange=True, visible=False),
+                    yaxis=dict(showgrid=False, fixedrange=True, side='right', tickformat=",.0f"),
+                    margin=dict(l=0, r=0, t=10, b=0),
+                    plot_bgcolor='rgba(0,0,0,0)',
+                    paper_bgcolor='rgba(0,0,0,0)',
+                    height=350,
+                    hovermode="x unified"
+                )
+                st.plotly_chart(fig, use_container_width=True, config={'displayModeBar': False})
+            else:
+                st.warning("Data historis tidak tersedia.")
+
+    with col_info:
+        st.markdown(f"### {selected_stock}")
+        st.markdown(f"## **{detail['Signal']}**")
+        st.write(f"Harga: **Rp {detail['Close']:,.0f}**")
+        st.progress(detail['Confidence'] / 100, text=f"Confidence: {detail['Confidence']}%")
+        
+        st.markdown("---")
+        st.markdown("**💡 Key Indicators:**")
+        reasons = detail['Reason'].split(", ")
+        for r in reasons:
+            icon = "✅" if any(x in r for x in ["Atas", "Bullish", "Sehat", "Positif", "Spike"]) else "❌"
+            st.write(f"{icon} {r}")
+
 
 # ================= TAB 3: KALKULATOR =================
 with tab3:    
