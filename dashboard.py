@@ -73,11 +73,16 @@ with tab1:
         return "color: #fbbf24; font-weight: bold; background-color: rgba(251, 191, 36, 0.1);"
 
     def color_return(val):
-        return "color: #34d399; font-weight: bold;" if val > 0 else "color: #f87171; font-weight: bold;"
+        val_str = str(val)
+        if val_str.startswith("+"):
+            return "color: #34d399; font-weight: bold;"
+        elif val_str.startswith("-"):
+            return "color: #f87171; font-weight: bold;"
+        return ""
 
+    # Format styling cukup nggo Close wae, Return 1Y ra perlu di-format maneh
     styled_df = df.style.format({
-        "Close": "Rp {:,.0f}", 
-        "Return 1Y": "{:,.2f}%"
+        "Close": "Rp {:,.0f}"
     }).map(color_signal, subset=["Signal"]).map(color_return, subset=["Return 1Y"])
 
     st.dataframe(styled_df, use_container_width=True, hide_index=True)
